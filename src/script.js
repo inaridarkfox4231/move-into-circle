@@ -166,8 +166,8 @@ class whole{
 			this.registObstacle({id:0, x:305, y:300, w:90, h:300});
 		}else if(this.stageNumber === 1){
 			this.keys.push(new key(200, 150));
-			this.keys.push(new key(240, 250));
-			this.keys.push(new key(160, 350));
+			this.keys.push(new key(200, 250));
+			this.keys.push(new key(200, 350));
 			this.key.necessary = 3;
 			this.registObstacle({id:1, x:200, y:150, w:60, h:60, ax:170, ay:0, period:160, phase:40});
 			this.registObstacle({id:1, x:200, y:250, w:60, h:60, ax:170, ay:0, period:160, phase:120});
@@ -321,7 +321,7 @@ function printText(str, x, y){
 // type1:一定の方向に正弦振動。色はオレンジ。
 // type2:楕円軌道。色は緑。
 // type3:放物線みたいな軌道でぴょんぴょん。色はピンク。
-// type4:tileにゆっくりと向かってくるホーミング。色は水色。
+// type4:tileにゆっくりと向かってくるホーミング。色は水色。→やっぱ没
 // type5:複数の場所を一定時間ごとにイージングで直線移動し続ける。規則的とランダムがある。色は青。
 // type6:伸縮する。中心が動くものとそうでないものがある。色は黄色。
 
