@@ -147,7 +147,7 @@ class whole{
 		this.keys = []; // keyを放り込む。
 		this.count = 0;
 		this.state = 0;
-		this.stageNumber = 1;
+		this.stageNumber = 0;
 		this.goal = {x:0, y:0, w:0, h:0};
 		this.key = {got:0, necessary:0, complete:false};
 		// got:取得した。necessary:必要数。必要なだけ取るとcompleteがfalse→trueになる。
@@ -184,12 +184,18 @@ class whole{
 			this.tile.setPos(56, 56 + 50); // ステージにより異なる
 			this.goalPos = {x:344, y:56 + 50}; // ステージにより異なる
 		}else if(this.stageNumber === 2){
-			this.registKeyPos([{x:200, y:100}, {x:200, y:200}, {x:200, y:300}]);
-			this.registObstacle({id:1, x:200, y:100, w:60, h:60, ax:170, ay:0, period:160, phase:40});
-			this.registObstacle({id:1, x:200, y:200, w:60, h:60, ax:170, ay:0, period:160, phase:120});
-			this.registObstacle({id:1, x:200, y:300, w:60, h:60, ax:170, ay:0, period:160, phase:40});
-			this.tile.setPos(5, 5 + 50); // ステージにより異なる
-			this.goalPos = {x:390, y:390 + 50}; // ステージにより異なる
+			this.registKeyPos([{x:80, y:140}, {x:320, y:260}]);
+			this.registObstacle({id:1, x:140, y:200, w:60, h:60, ax:0, ay:120, period:160, phase:40});
+			this.registObstacle({id:1, x:200, y:200, w:60, h:60, ax:0, ay:120, period:160, phase:80});
+			this.registObstacle({id:1, x:260, y:200, w:60, h:60, ax:0, ay:120, period:160, phase:120});
+			this.registObstacle({id:0, x:200, y:25, w:400, h:50});
+			this.registObstacle({id:0, x:200, y:375, w:400, h:50});
+			this.registObstacle({id:0, x:25, y:200, w:50, h:400});
+			this.registObstacle({id:0, x:375, y:200, w:50, h:400});
+			this.registObstacle({id:0, x:230, y:140, w:240, h:60});
+			this.registObstacle({id:0, x:170, y:260, w:240, h:60});
+			this.tile.setPos(320, 80 + 50); // ステージにより異なる
+			this.goalPos = {x:80, y:320 + 50}; // ステージにより異なる
 		}
 		this.setCount(60);
 		this.key.got = 0; // 常時処理
