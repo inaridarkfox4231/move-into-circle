@@ -1,7 +1,7 @@
 'use strict';
 let tile;
 let master;
-const MAXSTAGENUMBER = 2;
+const MAXSTAGENUMBER = 3;
 
 function setup(){
 	createCanvas(400, 450);
@@ -147,7 +147,7 @@ class whole{
 		this.keys = []; // keyを放り込む。
 		this.count = 0;
 		this.state = 0;
-		this.stageNumber = 0;
+		this.stageNumber = 1;
 		this.goal = {x:0, y:0, w:0, h:0};
 		this.key = {got:0, necessary:0, complete:false};
 		// got:取得した。necessary:必要数。必要なだけ取るとcompleteがfalse→trueになる。
@@ -157,25 +157,41 @@ class whole{
 	setObstacles(){
 		// stageNumberで分岐
 		if(this.stageNumber === 0){
-			this.keys.push(new key(105, 200));
-			this.keys.push(new key(220, 70));
-			this.keys.push(new key(240, 435));
-			this.key.necessary = 3;
-			this.registObstacle({id:0, x:40, y:300, w:100, h:300});
-			this.registObstacle({id:0, x:170, y:200, w:80, h:300});
-			this.registObstacle({id:0, x:305, y:300, w:90, h:300});
+			this.registKeyPos([{x:72, y:328}, {x:200, y:328}, {x:200, y:72}, {x:328, y:72}]);
+			this.registObstacle({id:0, x:20, y:200, w:40, h:360});
+			this.registObstacle({id:0, x:200, y:20, w:400, h:40});
+			this.registObstacle({id:0, x:380, y:200, w:40, h:360});
+			this.registObstacle({id:0, x:200, y:380, w:400, h:40});
+			this.registObstacle({id:0, x:136, y:168, w:64, h:256});
+			this.registObstacle({id:0, x:264, y:232, w:64, h:256});
+			this.tile.setPos(72, 72 + 50); // ステージにより異なる
+			this.goalPos = {x:328, y:328 + 50}; // ステージにより異なる
 		}else if(this.stageNumber === 1){
-			this.keys.push(new key(200, 150));
-			this.keys.push(new key(200, 250));
-			this.keys.push(new key(200, 350));
-			this.key.necessary = 3;
-			this.registObstacle({id:1, x:200, y:150, w:60, h:60, ax:170, ay:0, period:160, phase:40});
-			this.registObstacle({id:1, x:200, y:250, w:60, h:60, ax:170, ay:0, period:160, phase:120});
-			this.registObstacle({id:1, x:200, y:350, w:60, h:60, ax:170, ay:0, period:160, phase:40});
+			this.registKeyPos([{x:56, y:344}, {x:152, y:56}, {x:248, y:56}, {x:344, y:344}]);
+			this.registObstacle({id:0, x:200, y:16, w:400, h:32});
+			this.registObstacle({id:0, x:384, y:200, w:32, h:400});
+			this.registObstacle({id:0, x:200, y:384, w:400, h:32});
+			this.registObstacle({id:0, x:16, y:200, w:32, h:400});
+			this.registObstacle({id:0, x:104, y:63, w:48, h:62});
+			this.registObstacle({id:0, x:104, y:241, w:48, h:254});
+			this.registObstacle({id:0, x:200, y:159, w:48, h:254});
+			this.registObstacle({id:0, x:200, y:337, w:48, h:62});
+			this.registObstacle({id:0, x:296, y:63, w:48, h:62});
+			this.registObstacle({id:0, x:296, y:241, w:48, h:254});
+			this.registObstacle({id:0, x:104, y:296, w:104, h:48});
+			this.registObstacle({id:0, x:200, y:200, w:104, h:48});
+			this.registObstacle({id:0, x:296, y:296, w:104, h:48});
+			this.tile.setPos(56, 56 + 50); // ステージにより異なる
+			this.goalPos = {x:344, y:56 + 50}; // ステージにより異なる
+		}else if(this.stageNumber === 2){
+			this.registKeyPos([{x:200, y:100}, {x:200, y:200}, {x:200, y:300}]);
+			this.registObstacle({id:1, x:200, y:100, w:60, h:60, ax:170, ay:0, period:160, phase:40});
+			this.registObstacle({id:1, x:200, y:200, w:60, h:60, ax:170, ay:0, period:160, phase:120});
+			this.registObstacle({id:1, x:200, y:300, w:60, h:60, ax:170, ay:0, period:160, phase:40});
+			this.tile.setPos(5, 5 + 50); // ステージにより異なる
+			this.goalPos = {x:390, y:390 + 50}; // ステージにより異なる
 		}
 		this.setCount(60);
-		this.tile.setPos(5, 55); // ステージにより異なる
-		this.goalPos = {x:390, y:440}; // ステージにより異なる
 		this.key.got = 0; // 常時処理
 		this.key.complete = false; // 常時処理。共通処理はresetに書いた方がいいかも
 	}
@@ -290,14 +306,20 @@ class whole{
 		//this.tile.setPos(5, 5);
 		this.setObstacles();
 	}
+	registKeyPos(posArray){
+		posArray.forEach((p) => {
+			this.keys.push(new key(p.x, p.y + 50))
+		})
+		this.key.necessary = posArray.length;
+	}
 	registObstacle(data){
 		switch(data.id){
 			case 0:
-				this.obstacles.push(new rectObstacle(data.x, data.y, data.w, data.h, 0));
+				this.obstacles.push(new rectObstacle(data.x, data.y + 50, data.w, data.h, 0));
 				break;
 			case 1:
-				let obs = new rectObstacle(data.x, data.y, data.w, data.h, 5);
-				let f = new sineCurve(data.x, data.y, data.ax, data.ay, data.period, data.phase);
+				let obs = new rectObstacle(data.x, data.y + 50, data.w, data.h, 5);
+				let f = new sineCurve(data.x, data.y + 50, data.ax, data.ay, data.period, data.phase);
 				obs.setFlow(f);
 				this.obstacles.push(obs);
 				break;
