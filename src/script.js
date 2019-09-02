@@ -1,7 +1,7 @@
 'use strict';
 let tile;
 let master;
-const MAXSTAGENUMBER = 3;
+const MAXSTAGENUMBER = 4;
 
 function setup(){
 	createCanvas(400, 450);
@@ -92,9 +92,18 @@ class rectObstacle extends obstacle{
 
 class flow{
 	constructor(){
-		this.nextFlow = undefined;
+		this.nextFlowList = [];
 	}
-	execute(_obstacle){}
+	execute(_obstacle){} // flowに従って位置計算
+	convert(_obstacle){ // 新しいflowをセットする
+		let l = this.nextFlowList.length;
+		if(l === 0){ _obstacle.setFlow(undefined); }
+		if(l === 1){ _obstacle.setFlow(this.nextFlowList[0]); }
+		else{
+      let index = Math.floor(random(l));
+			_obstacle.setFlow(this.nextFlowList[index]);
+		}
+	}
 }
 
 class sineCurve extends flow{
@@ -112,6 +121,24 @@ class sineCurve extends flow{
 		_obstacle.x = this.cx + this.ax * sin(angle);
 		_obstacle.y = this.cy + this.ay * sin(angle);
 		_obstacle.count++;
+	}
+}
+
+class constantFlow extends flow{
+	constructor(sx, sy, gx, gy, span){
+		super();
+		this.sx = sx;
+		this.sy = sy;
+		this.gx = gx;
+		this.gy = gy;
+		this.span = span;
+	}
+	execute(_obstacle){
+		let prg = _obstacle.count / this.span;
+		_obstacle.x = map(prg, 0, 1, this.sx, this.gx);
+		_obstacle.y = map(prg, 0, 1, this.sy, this.gy);
+		_obstacle.count++;
+		if(_obstacle.count > this.span){ this.convert(_obstacle); }
 	}
 }
 
@@ -167,23 +194,39 @@ class whole{
 			this.tile.setPos(72, 72 + 50); // ステージにより異なる
 			this.goalPos = {x:328, y:328 + 50}; // ステージにより異なる
 		}else if(this.stageNumber === 1){
-			this.registKeyPos([{x:56, y:344}, {x:152, y:56}, {x:248, y:56}, {x:344, y:344}]);
-			this.registObstacle({id:0, x:200, y:16, w:400, h:32});
-			this.registObstacle({id:0, x:384, y:200, w:32, h:400});
-			this.registObstacle({id:0, x:200, y:384, w:400, h:32});
-			this.registObstacle({id:0, x:16, y:200, w:32, h:400});
-			this.registObstacle({id:0, x:104, y:63, w:48, h:62});
-			this.registObstacle({id:0, x:104, y:241, w:48, h:254});
-			this.registObstacle({id:0, x:200, y:159, w:48, h:254});
-			this.registObstacle({id:0, x:200, y:337, w:48, h:62});
-			this.registObstacle({id:0, x:296, y:63, w:48, h:62});
-			this.registObstacle({id:0, x:296, y:241, w:48, h:254});
-			this.registObstacle({id:0, x:104, y:296, w:104, h:48});
-			this.registObstacle({id:0, x:200, y:200, w:104, h:48});
-			this.registObstacle({id:0, x:296, y:296, w:104, h:48});
-			this.tile.setPos(56, 56 + 50); // ステージにより異なる
-			this.goalPos = {x:344, y:56 + 50}; // ステージにより異なる
+			this.registKeyPos([{x:40, y:40}, {x:360, y:40}, {x:40, y:360}, {x:360, y:360}]);
+			this.registObstacle({id:0, x:200, y:40, w:40, h:40});
+			this.registObstacle({id:0, x:40, y:200, w:40, h:40});
+			this.registObstacle({id:0, x:360, y:200, w:40, h:40});
+			this.registObstacle({id:0, x:200, y:360, w:40, h:40});
+			this.registObstacle({id:0, x:120, y:120, w:80, h:80});
+			this.registObstacle({id:0, x:280, y:120, w:80, h:80});
+			this.registObstacle({id:0, x:120, y:280, w:80, h:80});
+			this.registObstacle({id:0, x:280, y:280, w:80, h:80});
+			this.registObstacle({id:0, x:10, y:200, w:20, h:400});
+			this.registObstacle({id:0, x:200, y:10, w:400, h:20});
+			this.registObstacle({id:0, x:390, y:200, w:20, h:400});
+			this.registObstacle({id:0, x:200, y:390, w:400, h:20});
+			this.tile.setPos(200, 200 + 50); // ステージにより異なる
+			this.goalPos = {x:200, y:200 + 50}; // ステージにより異なる
 		}else if(this.stageNumber === 2){
+			this.registKeyPos([{x:260, y:60}, {x:340, y:260}, {x:140, y:340}, {x:60, y:140}]);
+			this.registObstacle({id:0, x:100, y:100, w:40, h:40});
+			this.registObstacle({id:0, x:100, y:200, w:40, h:80});
+			this.registObstacle({id:0, x:100, y:300, w:40, h:40});
+			this.registObstacle({id:0, x:200, y:100, w:80, h:40});
+			this.registObstacle({id:0, x:200, y:200, w:80, h:80});
+			this.registObstacle({id:0, x:200, y:300, w:80, h:40});
+			this.registObstacle({id:0, x:300, y:100, w:40, h:40});
+			this.registObstacle({id:0, x:300, y:200, w:40, h:80});
+			this.registObstacle({id:0, x:300, y:300, w:40, h:40});
+			this.registObstacle({id:0, x:20, y:200, w:40, h:400});
+			this.registObstacle({id:0, x:200, y:20, w:400, h:40});
+			this.registObstacle({id:0, x:380, y:200, w:40, h:400});
+			this.registObstacle({id:0, x:200, y:380, w:400, h:40});
+			this.tile.setPos(60, 60 + 50); // ステージにより異なる
+			this.goalPos = {x:340, y:340 + 50}; // ステージにより異なる
+		}else if(this.stageNumber === 3){
 			this.registKeyPos([{x:80, y:140}, {x:320, y:260}]);
 			this.registObstacle({id:1, x:140, y:200, w:60, h:60, ax:0, ay:120, period:160, phase:40});
 			this.registObstacle({id:1, x:200, y:200, w:60, h:60, ax:0, ay:120, period:160, phase:80});
@@ -361,3 +404,13 @@ function printText(str, x, y){
 // ステージ番号と数（〇/〇）みたいなの
 // キーを集めるとゴールが出現する仕組みにしたい。キーは横回転する逆三角形、ゴールは回転する正方形。
 // 色はそれぞれ濃いオレンジと紺色にする。
+
+// ワープするの作りたい。くるくる回るやつで別の色のものを作って・・紫とか。
+// ワープ先には何も用意しない感じで。
+// キーを取る順番で出現するゴールが変わったら面白そう。
+// センサーを用意してレールが動いたり止まったりしたら面白そう。
+// 例えばA地点からB地点にレールが敷かれているとき、ポイントPを通過するとレールがactivateされて、
+// 対象がAからBまで動いたら自動的にinActivateされる。そしてポイントQを通過するとふたたびactivateされるとか
+// なんかそんなような、エレベータみたいなやつ。
+
+// constantFlowに関してはactivate変数を設けてそれがうーん難しいセンサーとの連携どうするかな
