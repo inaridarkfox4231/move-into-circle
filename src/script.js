@@ -1,7 +1,7 @@
 'use strict';
 let tile;
 let master;
-const MAXSTAGENUMBER = 4;
+const MAXSTAGENUMBER = 1;
 
 function setup(){
 	createCanvas(400, 450);
@@ -41,7 +41,7 @@ class tiloid{
 			this.y -= 1.5 * sin(angle);
 		}
 		this.x = constrain(this.x, 5, 395);
-		this.y = constrain(this.y, 55, 445);
+		this.y = constrain(this.y, 5, 395);
 	}
 	render(){
 		push();
@@ -55,32 +55,24 @@ class tiloid{
 }
 
 class obstacle{
-  constructor(){
-	}
-	update(){}
-}
-
-// rectObstacleは長方形状の障害物です（他にも円を考えたいところ）
-// flowに従って位置を変えます。flowは位置を制御するための命令です。
-// flowのexecute命令の中で限界が来た場合に次のflowにセットします（同じflowを継続する場合もある）
-// flowがないものは固定長方形、画面の端とかに用意、当たるとアウト。
-class rectObstacle extends obstacle{
-	constructor(x, y, w, h, hue){
-		super();
-		this.x = x;
-		this.y = y;
+	constructor(hue, w, h){
+		this.x = 0;
+		this.y = 0;
 		this.w = w;
 		this.h = h;
-		this.currentFlow = undefined;
+		this.count = 0;
+		this.active = true;
 		this.hue = hue;
 	}
-	setFlow(newFlow){
-		this.count = 0;
-		this.currentFlow = newFlow;
+	setPos(x, y){
+		this.x = x;
+		this.y = y;
 	}
-	update(){
-		if(this.currentFlow === undefined){ return; }
-		this.currentFlow.execute(this);
+	activate(){ this.active = true; }
+	inActivate(){ this.active = false; }
+	reShape(newW, newH){
+		this.w = newW;
+		this.h = newH;
 	}
 	render(){
 		push();
@@ -90,56 +82,240 @@ class rectObstacle extends obstacle{
 	}
 }
 
-class flow{
-	constructor(){
-		this.nextFlowList = [];
+// いくつかの点集合の間を徘徊する。移動は直線とイージング。
+class wanderer extends obstacle{
+	constructor(hue, w, h, pointList, fromId, toId, span = 100, easingId = 0, moveType = 0){
+		super(hue, w, h);
+		this.points = pointList;
+		this.fromId = fromId;
+		this.toId = toId;
+		this.span = span;
+		this.easingId = easingId; // 0:通常。
+		this.moveType = moveType; // 0:元来た道も選ぶ。1:後戻りしない。2:どこでもランダム 3:後戻りしない、かつどこでもランダム
 	}
-	execute(_obstacle){} // flowに従って位置計算
-	convert(_obstacle){ // 新しいflowをセットする
-		let l = this.nextFlowList.length;
-		if(l === 0){ _obstacle.setFlow(undefined); }
-		if(l === 1){ _obstacle.setFlow(this.nextFlowList[0]); }
-		else{
-      let index = Math.floor(random(l));
-			_obstacle.setFlow(this.nextFlowList[index]);
+	changePoints(newPointList){
+		this.points = newPointList;
+	}
+	update(){
+		if(!this.active){ return; }
+		let u = this.points[this.fromId];
+		let v = this.points[this.toId];
+		let prg = wanderer.easing(this.count / this.span, this.easingId);
+		this.x = map(prg, 0, 1, u.x, v.x);
+		this.y = map(prg, 0, 1, u.y, v.y);
+		this.count++;
+		if(this.count === this.span){
+			// フラグ処理を挟むならここ。pointsを変えたりスピードを変えるなど。
+			this.convert();
+		}
+	}
+	convert(){
+		let previousFromId = this.fromId;
+		this.fromId = this.toId;
+		switch(this.moveType){
+			case 0: // 最も近くの点
+				this.toId = getClosePointId(this.fromId, this.points, -1);
+				break;
+			case 1: // 元来た点以外で最も近くの点
+				this.toId = getClosePointId(this.fromId, this.points, previousFromId);
+				break;
+			case 2: // どれかの点
+				this.toId = getRandomPointId(this.fromId, this.points, -1);
+				break;
+			case 3: // 元来た点以外でどれかの点
+				this.toId = getRandomPointId(this.fromId, this.points, previousFromId);
+				break;
+			case 4: // じゅんばん
+			  let len = this.points.length;
+				this.toId = (this.toId + 1) % len;
+		}
+		this.count = 0;
+	}
+	static easing(x, id){
+		switch(id){
+			case 0:
+				return x; // normal.
+			case 1:
+				return (1 - cos(PI * x)) / 2; // slowin, slowout.
+			case 2:
+				return x * (2 * x - 1); // backin.
+			case 3:
+				return 1 - Math.sqrt(1 - x * x); // slowin, fastout.
 		}
 	}
 }
 
-class sineCurve extends flow{
-	constructor(cx, cy, ax, ay, period, phase){
-		super();
-		this.cx = cx;
-		this.cy = cy;
-		this.ax = ax;
-		this.ay = ay;
-		this.period = period; // 周期、何フレームで往復完了するか
-		this.phase = phase; // 初期位相（数で指定、200に対して68なら68からスタート）
+// ある点を中心とした周回軌道。円、楕円、リサージュetc...
+// 円軌道の中に三角関数を入れて回転方向が変化するなど自由自在にできる。
+// centerが移動する派生形を作っても面白そう。往復させればリフトになるし。
+class circular extends obstacle{
+	constructor(hue, w, h, center, phase, period, params, moveType){
+		super(hue, w, h);
+		this.center = center;
+		this.phase = phase;
+		this.period = period;
+		this.params = params; // 長半径と短半径とか、リサージュのパラメータなど。
+		this.moveType = moveType; // 0:楕円、1:リサージュ、2:ゆらゆら円軌道（半径摂動）、etc...
 	}
-	execute(_obstacle){
-		let angle = (this.phase + _obstacle.count) * 2 * PI / this.period;
-		_obstacle.x = this.cx + this.ax * sin(angle);
-		_obstacle.y = this.cy + this.ay * sin(angle);
-		_obstacle.count++;
+	update(){
+		if(!this.active){ return; }
+		let angle = (this.phase + this.count) * 2 * PI / this.period;
+		let newPos = circular.calcPos(angle, this.params, this.moveType);
+		this.x = this.center.x + newPos.x;
+		this.y = this.center.y + newPos.y;
+		this.count++;
+		if(this.count > this.period){ this.count -= this.period; }
+	}
+	static calcPos(angle, params, id){
+		switch(id){
+			case 0: // 通常の楕円軌道
+				return {x:params[0] * cos(angle), y:params[1] * sin(angle)};
+			case 1: // リサージュ
+				return {x:params[0] * cos(params[2] * angle), y:params[1] * sin(params[3] * angle)};
+			case 2: // 正葉曲線のようなもの
+				return {
+					x:(params[0] + params[1] * sin(params[2] * angle)) * cos(angle),
+					y:(params[0] + params[1] * sin(params[2] * angle)) * sin(angle)
+				};
+		}
 	}
 }
 
-class constantFlow extends flow{
-	constructor(sx, sy, gx, gy, span){
-		super();
-		this.sx = sx;
-		this.sy = sy;
-		this.gx = gx;
-		this.gy = gy;
-		this.span = span;
+// 一方向にぎゅーんってとんでいく。
+// 画面外に出た後は元の場所に戻るか、消えるか考え中。とりあえず戻して。
+// 差分を計算するようにしようかな・・
+// 一応位置の情報も用意してバリエーション増やそうと試みる（うまくいくか知らんけど）
+// pivotからの変位を情報として取り入れる。たとえば螺旋軌道とかに使えそう（要らなさそう）。
+class bullet extends obstacle{
+	constructor(hue, w, h, pivot, params, moveType){
+		super(hue, w, h);
+		this.vx = 0;
+		this.vy = 0;
+		this.pivot = pivot;
+		this.x = this.pivot.x;
+		this.y = this.pivot.y;
+		this.params = params;
+		this.moveType = moveType;
 	}
-	execute(_obstacle){
-		let prg = _obstacle.count / this.span;
-		_obstacle.x = map(prg, 0, 1, this.sx, this.gx);
-		_obstacle.y = map(prg, 0, 1, this.sy, this.gy);
-		_obstacle.count++;
-		if(_obstacle.count > this.span){ this.convert(_obstacle); }
+	update(){
+		let velocity = bullet.calcVelocity(this.count, this.params, this.vx, this.vy, this.moveType);
+		this.vx = velocity.vx;
+		this.vy = velocity.vy;
+		this.x += this.vx;
+		this.y += this.vy;
+		this.count++;
+		if(this.failed()){ this.reset(); }
 	}
+	failed(){
+		if(this.x < 0 || this.y < 0 || this.x > 400 || this.y > 400){ return true; }
+		return false;
+	}
+  reset(){
+		this.x = this.pivot.x;
+		this.y = this.pivot.y;
+		this.vx = 0;
+		this.vy = 0;
+		this.count = 0;
+  }
+	static calcVelocity(count, params, vx, vy, id){
+		switch(id){
+			case 0:
+				return {vx:params[0], vy:params[1]}; // 等速度直線
+			case 1:
+				return {vx:vx + params[0], vy:vy + params[1]}; // 等加速度直線
+			case 2:
+				if(count < params[0]){ return {vx:params[1], vy:params[2]}; } // 一定フレームのあとに折れ曲がる感じ
+				else{
+					return {
+						vx: params[1] * cos(params[3]) + params[2] * sin(params[3]),
+						vy:-params[1] * sin(params[3]) + params[2] * cos(params[3])
+					}
+				}
+			case 3:
+				 // 一定フレームごとに右か左に折れ曲がる感じ。いわゆるランダムウォーク。
+				if(count === 0){ return {vx:params[1], vy:params[2]}; }
+				else if(count % params[0] === 0){
+					let factor = random([-PI / 2, PI / 2]);
+					return {
+						vx: vx * cos(factor) + vy * sin(factor),
+						vy:-vx * sin(factor) + vy * cos(factor)
+					}
+				}
+				return {vx:vx, vy:vy};
+			case 4:
+				// 一定フレームのあと折れ曲がり、加速度バージョン（速度は一旦リセットする）
+				if(count < params[0]){ return {vx:vx + params[1], vy:vy + params[2]}; }
+				else if(count > params[0]){
+					return {
+						vx: vx + params[1] * cos(params[3]) + params[2] * sin(params[3]),
+						vy: vy - params[1] * sin(params[3]) + params[2] * cos(params[3])
+					}
+				}
+				return {vx:0, vy:0};
+			case 5:
+				// ランダムウォークのパラメータ版。たとえば5なら1/5, 2/5, 3/5, 4/5およびそのマイナスのPI倍。
+				if(count === 0){ return {vx:params[1], vy:params[2]}; }
+				else if(count % params[0] === 0){
+					let angleList = [];
+					for(let i = 1; i < params[3]; i++){
+						angleList.push(i * PI / params[3]);
+						angleList.push(-i * PI / params[3]);
+					}
+					let factor = random(angleList);
+					return {
+						vx: vx * cos(factor) + vy * sin(factor),
+						vy:-vx * sin(factor) + vy * cos(factor)
+					}
+				}
+				return {vx:vx, vy:vy};
+			case 6:
+				// らせん。params[1]はピッチ。
+				let angle = count * 2 * PI / params[1];
+				return {
+					vx: params[0] * (cos(angle) - angle * sin(angle)),
+					vy: params[0] * (sin(angle) + angle * cos(angle))
+				}
+		}
+	}
+}
+
+function getClosePointId(id, pointList, avoid){
+	// id番以外で最も近いのを・・
+	// avoidが-1でないときは、その番号は除外するという意味。たとえば来た方向へは行かないとか。
+	let len = pointList.length;
+	let dist = 160000; // 最小距離
+	let dList = [];
+	let nextIdList = [];
+  for(let i = 1; i < len; i++){
+		let d = calcDist(pointList[id], pointList[(id + i) % len]);
+		dList.push(d);
+		if(dist > d){ dist = d; }
+	}
+	//console.log(dList);
+	//console.log(dist);
+	//console.log(avoid);
+	for(let i = 1; i < len; i++){
+		if((id + i) % len === avoid){ continue; }
+		if(dist === dList[i - 1]){ nextIdList.push((id + i) % len); }
+	}
+	//console.log(nextIdList);
+	if(nextIdList.length === 0){ return avoid; } // バグ回避
+	return random(nextIdList);
+}
+
+function getRandomPointId(id, pointList, avoid){
+	let len = pointList.length;
+	let nextIdList = [];
+	for(let i = 1; i < len; i++){
+		if((id + i) % len === avoid){ continue; }
+		nextIdList.push((id + i) % len);
+	}
+	if(nextIdList.length === 0){ return avoid; }
+	return random(nextIdList);
+}
+
+function calcDist(p, q){
+	return Math.pow(p.x - q.x, 2) + Math.pow(p.y - q.y, 2);
 }
 
 class key{
@@ -185,60 +361,9 @@ class whole{
 		// stageNumberで分岐
 		if(this.stageNumber === 0){
 			this.registKeyPos([{x:72, y:328}, {x:200, y:328}, {x:200, y:72}, {x:328, y:72}]);
-			this.registObstacle({id:0, x:20, y:200, w:40, h:360});
-			this.registObstacle({id:0, x:200, y:20, w:400, h:40});
-			this.registObstacle({id:0, x:380, y:200, w:40, h:360});
-			this.registObstacle({id:0, x:200, y:380, w:400, h:40});
-			this.registObstacle({id:0, x:136, y:168, w:64, h:256});
-			this.registObstacle({id:0, x:264, y:232, w:64, h:256});
-			this.tile.setPos(72, 72 + 50); // ステージにより異なる
-			this.goalPos = {x:328, y:328 + 50}; // ステージにより異なる
-		}else if(this.stageNumber === 1){
-			this.registKeyPos([{x:40, y:40}, {x:360, y:40}, {x:40, y:360}, {x:360, y:360}]);
-			this.registObstacle({id:0, x:200, y:40, w:40, h:40});
-			this.registObstacle({id:0, x:40, y:200, w:40, h:40});
-			this.registObstacle({id:0, x:360, y:200, w:40, h:40});
-			this.registObstacle({id:0, x:200, y:360, w:40, h:40});
-			this.registObstacle({id:0, x:120, y:120, w:80, h:80});
-			this.registObstacle({id:0, x:280, y:120, w:80, h:80});
-			this.registObstacle({id:0, x:120, y:280, w:80, h:80});
-			this.registObstacle({id:0, x:280, y:280, w:80, h:80});
-			this.registObstacle({id:0, x:10, y:200, w:20, h:400});
-			this.registObstacle({id:0, x:200, y:10, w:400, h:20});
-			this.registObstacle({id:0, x:390, y:200, w:20, h:400});
-			this.registObstacle({id:0, x:200, y:390, w:400, h:20});
-			this.tile.setPos(200, 200 + 50); // ステージにより異なる
-			this.goalPos = {x:200, y:200 + 50}; // ステージにより異なる
-		}else if(this.stageNumber === 2){
-			this.registKeyPos([{x:260, y:60}, {x:340, y:260}, {x:140, y:340}, {x:60, y:140}]);
-			this.registObstacle({id:0, x:100, y:100, w:40, h:40});
-			this.registObstacle({id:0, x:100, y:200, w:40, h:80});
-			this.registObstacle({id:0, x:100, y:300, w:40, h:40});
-			this.registObstacle({id:0, x:200, y:100, w:80, h:40});
-			this.registObstacle({id:0, x:200, y:200, w:80, h:80});
-			this.registObstacle({id:0, x:200, y:300, w:80, h:40});
-			this.registObstacle({id:0, x:300, y:100, w:40, h:40});
-			this.registObstacle({id:0, x:300, y:200, w:40, h:80});
-			this.registObstacle({id:0, x:300, y:300, w:40, h:40});
-			this.registObstacle({id:0, x:20, y:200, w:40, h:400});
-			this.registObstacle({id:0, x:200, y:20, w:400, h:40});
-			this.registObstacle({id:0, x:380, y:200, w:40, h:400});
-			this.registObstacle({id:0, x:200, y:380, w:400, h:40});
-			this.tile.setPos(60, 60 + 50); // ステージにより異なる
-			this.goalPos = {x:340, y:340 + 50}; // ステージにより異なる
-		}else if(this.stageNumber === 3){
-			this.registKeyPos([{x:80, y:140}, {x:320, y:260}]);
-			this.registObstacle({id:1, x:140, y:200, w:60, h:60, ax:0, ay:120, period:160, phase:40});
-			this.registObstacle({id:1, x:200, y:200, w:60, h:60, ax:0, ay:120, period:160, phase:80});
-			this.registObstacle({id:1, x:260, y:200, w:60, h:60, ax:0, ay:120, period:160, phase:120});
-			this.registObstacle({id:0, x:200, y:25, w:400, h:50});
-			this.registObstacle({id:0, x:200, y:375, w:400, h:50});
-			this.registObstacle({id:0, x:25, y:200, w:50, h:400});
-			this.registObstacle({id:0, x:375, y:200, w:50, h:400});
-			this.registObstacle({id:0, x:230, y:140, w:240, h:60});
-			this.registObstacle({id:0, x:170, y:260, w:240, h:60});
-			this.tile.setPos(320, 80 + 50); // ステージにより異なる
-			this.goalPos = {x:80, y:320 + 50}; // ステージにより異なる
+      // 書き直し
+			this.tile.setPos(72, 72); // ステージにより異なる
+			this.goalPos = {x:328, y:328}; // ステージにより異なる
 		}
 		this.setCount(60);
 		this.key.got = 0; // 常時処理
@@ -315,10 +440,10 @@ class whole{
 	render(){
 		// 上部バー
 		fill(0)
-		rect(200, 25, 400, 50);
+		rect(200, 425, 400, 50);
 		fill(255);
-		printText("STAGE " + (this.stageNumber + 1).toString(), 10, 40);
-		printText((this.key.got).toString() + "/" + (this.key.necessary).toString(), 300, 40);
+		printText("STAGE " + (this.stageNumber + 1).toString(), 10, 440);
+		printText((this.key.got).toString() + "/" + (this.key.necessary).toString(), 300, 440);
 		// ゴール
 		if(this.key.complete){
 			let w = abs(this.count % 120 - 60) / 3;
@@ -339,13 +464,13 @@ class whole{
 		// 文字関連
 		fill(0, 0, 100);
 		if(this.state === 0){
-			printText("START!", 40, 110);
+			printText("START!", 40, 60);
 		}else if(this.state === 2){
-			printText("FAILURE..", 40, 110);
+			printText("FAILURE..", 40, 60);
 		}else if(this.state === 3){
-			printText("CLEAR!", 20, 130);
+			printText("CLEAR!", 20, 80);
 			if(this.stageNumber + 1 === MAXSTAGENUMBER){
-				printText("STAGE ALL CLEAR!", 20, 175);
+				printText("STAGE ALL CLEAR!", 20, 125);
 			}
 		}
 	}
@@ -357,20 +482,30 @@ class whole{
 	}
 	registKeyPos(posArray){
 		posArray.forEach((p) => {
-			this.keys.push(new key(p.x, p.y + 50))
+			this.keys.push(new key(p.x, p.y))
 		})
 		this.key.necessary = posArray.length;
 	}
 	registObstacle(data){
-		switch(data.id){
+    // 書き直し
+		switch(data.kind){
+			case -1:
+			  // simple.
+				let obs = new obstacle(data.hue, data.w, data.h);
+				obs.setPos(data.x, data.y);
+				this.obstacles.push(obs);
+				break;
 			case 0:
-				this.obstacles.push(new rectObstacle(data.x, data.y + 50, data.w, data.h, 0));
+			  // wanderer.
+				this.obstacles.push(new wanderer(data.hue, data.w, data.h, data.pList, data.from, data.to, data.span, data.easingId, data.moveType));
 				break;
 			case 1:
-				let obs = new rectObstacle(data.x, data.y + 50, data.w, data.h, 5);
-				let f = new sineCurve(data.x, data.y + 50, data.ax, data.ay, data.period, data.phase);
-				obs.setFlow(f);
-				this.obstacles.push(obs);
+			  // circular.
+				this.obstacles.push(new circular(data.hue, data.w, data.h, data.center, data.phase, data.period, data.params, data.moveType));
+				break;
+			case 2:
+			  // bullet.
+				this.obstacles.push(new bullet(data.hue, data.w, data.h, data.pivot, data.params, data.moveType));
 				break;
 		}
 	}

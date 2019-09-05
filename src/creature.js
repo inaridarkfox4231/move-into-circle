@@ -66,6 +66,10 @@ class obstacle{
 		this.active = true;
 		this.hue = hue;
 	}
+	setPos(x, y){
+		this.x = x;
+		this.y = y;
+	}
 	activate(){ this.active = true; }
 	inActivate(){ this.active = false; }
 	reShape(newW, newH){
