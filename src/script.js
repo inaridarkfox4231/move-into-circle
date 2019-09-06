@@ -222,8 +222,9 @@ class bullet extends obstacle{
 		switch(id){
 			case 0:
 				return {vx:params[0], vy:params[1]}; // 等速度直線
-			case 1:
-				return {vx:vx + params[0], vy:vy + params[1]}; // 等加速度直線
+				case 1:
+					if(count === 0){ return {vx:params[0], vy:params[1]}; }
+					return {vx:vx + params[2], vy:vy + params[3]}; // 等加速度直線
 			case 2:
 				if(count < params[0]){ return {vx:params[1], vy:params[2]}; } // 一定フレームのあとに折れ曲がる感じ
 				else{
@@ -276,6 +277,38 @@ class bullet extends obstacle{
 					vx: params[0] * (cos(angle) - angle * sin(angle)),
 					vy: params[0] * (sin(angle) + angle * cos(angle))
 				}
+			case 7:
+				// 方向変化。とりあえず速度一定版。paramsは3n-1個の変数からなり、初めのn-1個で区切りを指定する（正の数）。
+				// そして残りの2n個がx方向とy方向の成分になるわけね。
+				// たとえば30, 60, 90, 120なら30フレームごとに違う方向に移動し最後は直進する。
+				let n = floor(params.length / 3) + 1;
+				if(count === 0){ return {vx:params[n - 1], vy:params[2 * n - 1]}; }
+				else{
+				  let k = 0;
+					for(let m = 0; m < n - 1; m++){
+						if(count < params[m]){ break; }
+						k++;
+					}
+					return {vx:params[n - 1 + k], vy:params[2 * n - 1 + k]};
+				}
+				break;
+			case 8:
+				// 方向変化。加速度版。5h-1個。初めのh-1個が区切りで、残りの4h個は順に初速度x, 初速度y, 加速度x, 加速度y.
+				// 加速度は0に指定することもできるのである意味究極形。
+				let h = floor(params.length / 5) + 1;
+				if(count === 0){ return {vx:params[h - 1], vy:params[2 * h - 1]}; }
+				else{
+					let k = 0;
+					for(let m = 0; m < h - 1; m++){
+						if(count < params[m]){ break; }
+						k++;
+					}
+					if(k > 0 && count === params[k - 1]){ return {vx:params[h - 1 + k], vy:params[2 * h - 1 + k]}; }
+					else{
+						return {vx:vx + params[3 * h - 1 + k], vy:vy + params[4 * h - 1 + k]};
+					}
+				}
+				break;
 		}
 	}
 }

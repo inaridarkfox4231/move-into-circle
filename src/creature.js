@@ -12,7 +12,7 @@ function setup(){
 		for(let j = 1; j <= 7; j++){
 			pList.push({x:50 * i, y:50 * j});
 		}
-	}
+	}/*
 	obstacles.push(new wanderer(0, 20, 20, pList, 0, 1, 70, 2, 0));
 	obstacles.push(new wanderer(7, 20, 20, pList, 0, 1, 65, 1, 1));
 	obstacles.push(new wanderer(12, 20, 20, pList, 0, 1, 60, 0, 2));
@@ -31,10 +31,10 @@ function setup(){
 	obstacles.push(new circular(97, 20, 20, {x:200, y:200}, 140, 160, [100, 100], 0));
 	obstacles.push(new circular(70, 20, 20, {x:200, y:200}, 0, 180, [150, 150, 3, 2], 1));
 	obstacles.push(new circular(0, 20, 20, {x:200, y:200}, 0, 360, [150, 50, 6], 2));
-	obstacles.push(new bullet(50, 20, 20, {x:200, y:200}, [0.04, -0.04], 1));
-	obstacles.push(new bullet(50, 20, 20, {x:200, y:200}, [0.04, 0.04], 1));
-	obstacles.push(new bullet(50, 20, 20, {x:200, y:200}, [-0.04, 0.04], 1));
-	obstacles.push(new bullet(50, 20, 20, {x:200, y:200}, [-0.04, -0.04], 1));
+	obstacles.push(new bullet(50, 20, 20, {x:200, y:200}, [-2, 2, 0.04, -0.04], 1));
+	obstacles.push(new bullet(50, 20, 20, {x:200, y:200}, [-2, -2, 0.04, 0.04], 1));
+	obstacles.push(new bullet(50, 20, 20, {x:200, y:200}, [2, -2, -0.04, 0.04], 1));
+	obstacles.push(new bullet(50, 20, 20, {x:200, y:200}, [2, 2, -0.04, -0.04], 1));
 	obstacles.push(new bullet(70, 20, 20, {x:100, y:200}, [30, 4, 0, PI / 9], 2));
 	obstacles.push(new bullet(70, 20, 20, {x:100, y:200}, [30, 4, 0, 2 * PI / 9], 2));
 	obstacles.push(new bullet(70, 20, 20, {x:100, y:200}, [30, 4, 0, 3 * PI / 9], 2));
@@ -47,7 +47,13 @@ function setup(){
 	obstacles.push(new bullet(38, 20, 20, {x:200, y:200}, [20, 2, 0, 5], 5));
 	obstacles.push(new bullet(38, 20, 20, {x:200, y:200}, [20, 2, 0, 5], 5));
 	obstacles.push(new bullet(38, 20, 20, {x:200, y:200}, [20, 2, 0, 5], 5));
-	obstacles.push(new bullet(0, 20, 20, {x:200, y:200}, [0.1, 180], 6));
+	obstacles.push(new bullet(0, 20, 20, {x:200, y:200}, [0.1, 180], 6));*/
+	obstacles.push(new bullet(0, 20, 20, {x:200, y:200}, [30, 60, 90, 3, 3, -3, -3 ,3, -3, -3, 3], 7));
+	obstacles.push(new bullet(70, 20, 20, {x:200, y:200}, [30, 60, 90, -3, -3, 3, 3 ,3, -3, -3, 3], 7));
+	obstacles.push(new bullet(5, 20, 20, {x:200, y:200}, [30, 60, 90, 3, 3, -3, -3 ,-3, 3, 3, -3], 7));
+	obstacles.push(new bullet(77, 20, 20, {x:200, y:200}, [30, 60, 90, -3, -3, 3, 3 ,-3, 3, 3, -3], 7));
+	obstacles.push(new bullet(77, 20, 20, {x:200, y:200}, [6, 4.5, 0, -0.5], 1));
+	obstacles.push(new bullet(0, 20, 20, {x:200, y:200}, [30, 60, 90, 4, 0, -4, 0, 0, 4, 0, -4, -0.05, 0, 0.05, 0, 0, -0.05, 0, 0.05], 8));
 	//noLoop();
 }
 function draw(){
@@ -223,8 +229,9 @@ class bullet extends obstacle{
 		switch(id){
 			case 0:
 				return {vx:params[0], vy:params[1]}; // 等速度直線
-			case 1:
-				return {vx:vx + params[0], vy:vy + params[1]}; // 等加速度直線
+				case 1:
+					if(count === 0){ return {vx:params[0], vy:params[1]}; }
+					return {vx:vx + params[2], vy:vy + params[3]}; // 等加速度直線
 			case 2:
 				if(count < params[0]){ return {vx:params[1], vy:params[2]}; } // 一定フレームのあとに折れ曲がる感じ
 				else{
@@ -277,6 +284,38 @@ class bullet extends obstacle{
 					vx: params[0] * (cos(angle) - angle * sin(angle)),
 					vy: params[0] * (sin(angle) + angle * cos(angle))
 				}
+			case 7:
+				// 方向変化。とりあえず速度一定版。paramsは3n-1個の変数からなり、初めのn-1個で区切りを指定する（正の数）。
+				// そして残りの2n個がx方向とy方向の成分になるわけね。
+				// たとえば30, 60, 90, 120なら30フレームごとに違う方向に移動し最後は直進する。
+				let n = floor(params.length / 3) + 1;
+				if(count === 0){ return {vx:params[n - 1], vy:params[2 * n - 1]}; }
+				else{
+				  let k = 0;
+					for(let m = 0; m < n - 1; m++){
+						if(count < params[m]){ break; }
+						k++;
+					}
+					return {vx:params[n - 1 + k], vy:params[2 * n - 1 + k]};
+				}
+				break;
+			case 8:
+				// 方向変化。加速度版。5h-1個。初めのh-1個が区切りで、残りの4h個は順に初速度x, 初速度y, 加速度x, 加速度y.
+				// 加速度は0に指定することもできるのである意味究極形。
+				let h = floor(params.length / 5) + 1;
+				if(count === 0){ return {vx:params[h - 1], vy:params[2 * h - 1]}; }
+				else{
+					let k = 0;
+					for(let m = 0; m < h - 1; m++){
+						if(count < params[m]){ break; }
+						k++;
+					}
+					if(k > 0 && count === params[k - 1]){ return {vx:params[h - 1 + k], vy:params[2 * h - 1 + k]}; }
+					else{
+						return {vx:vx + params[3 * h - 1 + k], vy:vy + params[4 * h - 1 + k]};
+					}
+				}
+				break;
 		}
 	}
 }
