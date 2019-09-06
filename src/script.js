@@ -1,7 +1,7 @@
 'use strict';
 let tile;
 let master;
-const MAXSTAGENUMBER = 1;
+const MAXSTAGENUMBER = 2;
 
 function setup(){
 	createCanvas(400, 450);
@@ -371,6 +371,30 @@ class whole{
 			this.registObstacle({kind:-1, hue:0, w:80, h:240, x:280, y:240});
 			this.tile.setPos(60, 60); // ステージにより異なる
 			this.goalPos = {x:340, y:340}; // ステージにより異なる
+		}else if(this.stageNumber === 1){
+			this.registKeyPos([{x:120, y:260}, {x:280, y:260}]);
+			this.registObstacle({kind:-1, hue:0, w:400, h:80, x:200, y:40});
+			this.registObstacle({kind:-1, hue:0, w:60, h:400, x:30, y:200});
+			this.registObstacle({kind:-1, hue:0, w:400, h:80, x:200, y:360});
+			this.registObstacle({kind:-1, hue:0, w:60, h:400, x:370, y:200});
+			this.registObstacle({kind:-1, hue:0, w:40, h:200, x:200, y:180});
+			this.registObstacle({kind:-1, hue:0, w:80, h:40, x:100, y:180});
+			this.registObstacle({kind:-1, hue:0, w:80, h:40, x:300, y:180});
+			let px = [120, 160, 160, 120, 80, 160, 160, 80, 320, 240, 240, 320, 280, 240, 240, 280];
+			let py = [100, 100, 140, 140, 220, 220, 300, 300, 220, 220, 300, 300, 100, 100, 140, 140];
+			let points = [];
+			for(let i = 0; i < px.length; i++){ points.push({x:px[i], y:py[i]}); }
+			this.registObstacle({kind:0, hue:5, w:30, h:30, pList:points.slice(0, 4), from:0, to:1, span:60, easingId:0, moveType:4});
+			this.registObstacle({kind:0, hue:5, w:30, h:30, pList:points.slice(0, 4), from:2, to:3, span:60, easingId:0, moveType:4});
+			this.registObstacle({kind:0, hue:5, w:30, h:30, pList:points.slice(4, 8), from:0, to:1, span:60, easingId:0, moveType:4});
+			this.registObstacle({kind:0, hue:5, w:30, h:30, pList:points.slice(4, 8), from:2, to:3, span:60, easingId:0, moveType:4});
+			console.log("kkkk");
+			this.registObstacle({kind:0, hue:5, w:30, h:30, pList:points.slice(8, 12), from:0, to:1, span:60, easingId:0, moveType:4});
+			this.registObstacle({kind:0, hue:5, w:30, h:30, pList:points.slice(8, 12), from:2, to:3, span:60, easingId:0, moveType:4});
+			this.registObstacle({kind:0, hue:5, w:30, h:30, pList:points.slice(12, 16), from:0, to:1, span:60, easingId:0, moveType:4});
+			this.registObstacle({kind:0, hue:5, w:30, h:30, pList:points.slice(12, 16), from:2, to:3, span:60, easingId:0, moveType:4});
+			this.tile.setPos(80, 100); // ステージにより異なる
+			this.goalPos = {x:320, y:100}; // ステージにより異なる
 		}
 		this.setCount(60);
 		this.key.got = 0; // 常時処理
