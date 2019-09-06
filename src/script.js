@@ -74,6 +74,7 @@ class obstacle{
 		this.w = newW;
 		this.h = newH;
 	}
+	update(){}
 	render(){
 		push();
 		fill(this.hue, 100, 100);
@@ -360,10 +361,16 @@ class whole{
 	setObstacles(){
 		// stageNumberで分岐
 		if(this.stageNumber === 0){
-			this.registKeyPos([{x:72, y:328}, {x:200, y:328}, {x:200, y:72}, {x:328, y:72}]);
+			this.registKeyPos([{x:120, y:320}, {x:200, y:320}, {x:200, y:80}, {x:280, y:80}]);
       // 書き直し
-			this.tile.setPos(72, 72); // ステージにより異なる
-			this.goalPos = {x:328, y:328}; // ステージにより異なる
+			this.registObstacle({kind:-1, hue:0, w:400, h:40, x:200, y:20});
+			this.registObstacle({kind:-1, hue:0, w:40, h:400, x:20, y:200});
+			this.registObstacle({kind:-1, hue:0, w:400, h:40, x:200, y:380});
+			this.registObstacle({kind:-1, hue:0, w:40, h:400, x:380, y:200});
+			this.registObstacle({kind:-1, hue:0, w:80, h:240, x:120, y:160});
+			this.registObstacle({kind:-1, hue:0, w:80, h:240, x:280, y:240});
+			this.tile.setPos(60, 60); // ステージにより異なる
+			this.goalPos = {x:340, y:340}; // ステージにより異なる
 		}
 		this.setCount(60);
 		this.key.got = 0; // 常時処理
