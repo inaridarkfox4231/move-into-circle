@@ -2,18 +2,21 @@
 let tile;
 let master;
 const MAXSTAGENUMBER = 3;
+// 黒、赤、朱、緑、青、紫、黄色、水色
+// 0:壁、1~5:敵、6:キー、7:ゴール
+let pallete = [];
 
 function setup(){
 	createCanvas(400, 450);
-	colorMode(HSB, 100);
 	rectMode(CENTER);
 	noStroke();
+	pallete = [color(0), color(237, 28, 36), color(255, 127, 39), color(34, 177, 76), color(63, 72, 204), color(163, 73, 164), color(255, 242, 0), color(0, 162, 232)];
 	master = new whole();
 	master.setObstacles();
 }
 
 function draw(){
-	background(master.backgroundColor);
+	background(200);
   master.update();
 	master.render();
 	master.collisionCheck();
@@ -47,7 +50,7 @@ class tiloid{
 		push();
 		fill(0);
 		rect(this.x, this.y, 10, 10);
-		fill(0, 0, 100);
+		fill(255);
 		rect(this.x - 2, this.y - 2, 2, 4);
 		rect(this.x + 2, this.y - 2, 2, 4);
 		pop();
@@ -55,14 +58,14 @@ class tiloid{
 }
 
 class obstacle{
-	constructor(hue, w, h){
+	constructor(level, w, h){
 		this.x = 0;
 		this.y = 0;
 		this.w = w;
 		this.h = h;
 		this.count = 0;
 		this.active = true;
-		this.hue = hue;
+		this.level = level;
 		this.isEnemy = false;
 	}
 	setPos(x, y){
@@ -78,7 +81,7 @@ class obstacle{
 	update(){}
 	render(){
 		push();
-		fill(this.hue, 100, 100);
+		fill(pallete[this.level]);
 		rect(this.x, this.y, this.w, this.h);
 		pop();
 	}
@@ -86,8 +89,8 @@ class obstacle{
 
 // いくつかの点集合の間を徘徊する。移動は直線とイージング。
 class wanderer extends obstacle{
-	constructor(hue, w, h, pointList, fromId, toId, span = 100, easingId = 0, moveType = 0){
-		super(hue, w, h);
+	constructor(level, w, h, pointList, fromId, toId, span = 100, easingId = 0, moveType = 0){
+		super(level, w, h);
 		this.isEnemy = true;
 		this.points = pointList;
 		this.fromId = fromId;
@@ -152,8 +155,8 @@ class wanderer extends obstacle{
 // 円軌道の中に三角関数を入れて回転方向が変化するなど自由自在にできる。
 // centerが移動する派生形を作っても面白そう。往復させればリフトになるし。
 class circular extends obstacle{
-	constructor(hue, w, h, center, phase, period, params, moveType){
-		super(hue, w, h);
+	constructor(level, w, h, center, phase, period, params, moveType){
+		super(level, w, h);
 		this.isEnemy = true;
 		this.center = center;
 		this.phase = phase;
@@ -191,8 +194,8 @@ class circular extends obstacle{
 // 一応位置の情報も用意してバリエーション増やそうと試みる（うまくいくか知らんけど）
 // pivotからの変位を情報として取り入れる。たとえば螺旋軌道とかに使えそう（要らなさそう）。
 class bullet extends obstacle{
-	constructor(hue, w, h, pivot, params, moveType){
-		super(hue, w, h);
+	constructor(level, w, h, pivot, params, moveType){
+		super(level, w, h);
 		this.isEnemy = true;
 		this.vx = 0;
 		this.vy = 0;
@@ -383,7 +386,6 @@ class key{
 
 class whole{
 	constructor(){
-		this.backgroundColor = color(0, 0, 0);
 		this.tile = new tiloid();
 		this.obstacles = [];
 		this.keys = []; // keyを放り込む。
@@ -399,49 +401,46 @@ class whole{
 	setObstacles(){
 		// stageNumberで分岐
 		if(this.stageNumber === 0){
-			this.backgroundColor = color(0, 30, 100);
 			this.registKeyPos([{x:120, y:320}, {x:200, y:320}, {x:200, y:80}, {x:280, y:80}]);
       // 書き直し
-			this.registObstacle({kind:-1, hue:0, w:400, h:40, x:200, y:20});
-			this.registObstacle({kind:-1, hue:0, w:40, h:400, x:20, y:200});
-			this.registObstacle({kind:-1, hue:0, w:400, h:40, x:200, y:380});
-			this.registObstacle({kind:-1, hue:0, w:40, h:400, x:380, y:200});
-			this.registObstacle({kind:-1, hue:0, w:80, h:240, x:120, y:160});
-			this.registObstacle({kind:-1, hue:0, w:80, h:240, x:280, y:240});
+			this.registObstacle({kind:-1, level:0, w:400, h:40, x:200, y:20});
+			this.registObstacle({kind:-1, level:0, w:40, h:400, x:20, y:200});
+			this.registObstacle({kind:-1, level:0, w:400, h:40, x:200, y:380});
+			this.registObstacle({kind:-1, level:0, w:40, h:400, x:380, y:200});
+			this.registObstacle({kind:-1, level:0, w:80, h:240, x:120, y:160});
+			this.registObstacle({kind:-1, level:0, w:80, h:240, x:280, y:240});
 			this.tile.setPos(60, 60); // ステージにより異なる
 			this.goalPos = {x:340, y:340}; // ステージにより異なる
 		}else if(this.stageNumber === 1){
-			this.backgroundColor = color(70, 30, 100);
 			this.registKeyPos([{x:120, y:260}, {x:280, y:260}]);
-			this.registObstacle({kind:-1, hue:70, w:400, h:80, x:200, y:40});
-			this.registObstacle({kind:-1, hue:70, w:60, h:400, x:30, y:200});
-			this.registObstacle({kind:-1, hue:70, w:400, h:80, x:200, y:360});
-			this.registObstacle({kind:-1, hue:70, w:60, h:400, x:370, y:200});
-			this.registObstacle({kind:-1, hue:70, w:40, h:200, x:200, y:180});
-			this.registObstacle({kind:-1, hue:70, w:80, h:40, x:100, y:180});
-			this.registObstacle({kind:-1, hue:70, w:80, h:40, x:300, y:180});
+			this.registObstacle({kind:-1, level:0, w:400, h:80, x:200, y:40});
+			this.registObstacle({kind:-1, level:0, w:60, h:400, x:30, y:200});
+			this.registObstacle({kind:-1, level:0, w:400, h:80, x:200, y:360});
+			this.registObstacle({kind:-1, level:0, w:60, h:400, x:370, y:200});
+			this.registObstacle({kind:-1, level:0, w:40, h:200, x:200, y:180});
+			this.registObstacle({kind:-1, level:0, w:80, h:40, x:100, y:180});
+			this.registObstacle({kind:-1, level:0, w:80, h:40, x:300, y:180});
 			let px = [120, 160, 160, 120, 80, 160, 160, 80, 320, 240, 240, 320, 280, 240, 240, 280];
 			let py = [100, 100, 140, 140, 220, 220, 300, 300, 220, 220, 300, 300, 100, 100, 140, 140];
 			let points = [];
 			for(let i = 0; i < px.length; i++){ points.push({x:px[i], y:py[i]}); }
-			this.registObstacle({kind:0, hue:5, w:30, h:30, pList:points.slice(0, 4), from:0, to:1, span:60, easingId:0, moveType:4});
-			this.registObstacle({kind:0, hue:5, w:30, h:30, pList:points.slice(0, 4), from:2, to:3, span:60, easingId:0, moveType:4});
-			this.registObstacle({kind:0, hue:5, w:40, h:40, pList:points.slice(4, 8), from:0, to:1, span:60, easingId:0, moveType:4});
-			this.registObstacle({kind:0, hue:5, w:40, h:40, pList:points.slice(4, 8), from:2, to:3, span:60, easingId:0, moveType:4});
+			this.registObstacle({kind:0, level:1, w:30, h:30, pList:points.slice(0, 4), from:0, to:1, span:60, easingId:0, moveType:4});
+			this.registObstacle({kind:0, level:1, w:30, h:30, pList:points.slice(0, 4), from:2, to:3, span:60, easingId:0, moveType:4});
+			this.registObstacle({kind:0, level:1, w:40, h:40, pList:points.slice(4, 8), from:0, to:1, span:60, easingId:0, moveType:4});
+			this.registObstacle({kind:0, level:1, w:40, h:40, pList:points.slice(4, 8), from:2, to:3, span:60, easingId:0, moveType:4});
 			console.log("kkkk");
-			this.registObstacle({kind:0, hue:5, w:40, h:40, pList:points.slice(8, 12), from:0, to:1, span:60, easingId:0, moveType:4});
-			this.registObstacle({kind:0, hue:5, w:40, h:40, pList:points.slice(8, 12), from:2, to:3, span:60, easingId:0, moveType:4});
-			this.registObstacle({kind:0, hue:5, w:30, h:30, pList:points.slice(12, 16), from:0, to:1, span:60, easingId:0, moveType:4});
-			this.registObstacle({kind:0, hue:5, w:30, h:30, pList:points.slice(12, 16), from:2, to:3, span:60, easingId:0, moveType:4});
+			this.registObstacle({kind:0, level:1, w:40, h:40, pList:points.slice(8, 12), from:0, to:1, span:60, easingId:0, moveType:4});
+			this.registObstacle({kind:0, level:1, w:40, h:40, pList:points.slice(8, 12), from:2, to:3, span:60, easingId:0, moveType:4});
+			this.registObstacle({kind:0, level:1, w:30, h:30, pList:points.slice(12, 16), from:0, to:1, span:60, easingId:0, moveType:4});
+			this.registObstacle({kind:0, level:1, w:30, h:30, pList:points.slice(12, 16), from:2, to:3, span:60, easingId:0, moveType:4});
 			this.tile.setPos(80, 100); // ステージにより異なる
 			this.goalPos = {x:320, y:100}; // ステージにより異なる
 		}else if(this.stageNumber === 2){
-			this.backgroundColor = color(60, 30, 100);
 			this.registKeyPos([{x:100, y:140}, {x:100, y:260}, {x:300, y:140}, {x:300, y:260}]);
-			this.registObstacle({kind:-1, hue:60, w:400, h:40, x:200, y:20});
-			this.registObstacle({kind:-1, hue:60, w:40, h:400, x:20, y:200});
-			this.registObstacle({kind:-1, hue:60, w:400, h:40, x:200, y:380});
-			this.registObstacle({kind:-1, hue:60, w:40, h:400, x:380, y:200});
+			this.registObstacle({kind:-1, level:0, w:400, h:40, x:200, y:20});
+			this.registObstacle({kind:-1, level:0, w:40, h:400, x:20, y:200});
+			this.registObstacle({kind:-1, level:0, w:400, h:40, x:200, y:380});
+			this.registObstacle({kind:-1, level:0, w:40, h:400, x:380, y:200});
 			let points = [];
 			for(let i = 0; i < 4; i++){
 				for(let k = 0; k < 3; k++){
@@ -451,10 +450,10 @@ class whole{
 			for(let j = 0; j < 12; j++){ points.push({x:points[j].x + 160, y:points[j].y}); }
 			for(let j = 0; j < 12; j++){ points.push({x:points[j].x, y:points[j].y + 120}); }
 			for(let j = 0; j < 12; j++){ points.push({x:points[j].x + 160, y:points[j].y + 120}); }
-			this.registObstacle({kind:0, hue:30, w:30, h:30, pList:points.slice(0, 12), from:11, to:10, span:20, easingId:0, moveType:0});
-			this.registObstacle({kind:0, hue:30, w:30, h:30, pList:points.slice(12, 24), from:8, to:9, span:20, easingId:0, moveType:0});
-			this.registObstacle({kind:0, hue:30, w:30, h:30, pList:points.slice(24, 36), from:3, to:2, span:20, easingId:0, moveType:0});
-			this.registObstacle({kind:0, hue:30, w:30, h:30, pList:points.slice(36, 48), from:0, to:1, span:20, easingId:0, moveType:0});
+			this.registObstacle({kind:0, level:1, w:30, h:30, pList:points.slice(0, 12), from:11, to:10, span:20, easingId:0, moveType:0});
+			this.registObstacle({kind:0, level:1, w:30, h:30, pList:points.slice(12, 24), from:8, to:9, span:20, easingId:0, moveType:0});
+			this.registObstacle({kind:0, level:1, w:30, h:30, pList:points.slice(24, 36), from:3, to:2, span:20, easingId:0, moveType:0});
+			this.registObstacle({kind:0, level:1, w:30, h:30, pList:points.slice(36, 48), from:0, to:1, span:20, easingId:0, moveType:0});
 			this.tile.setPos(200, 60); // ステージにより異なる
 			this.goalPos = {x:200, y:340}; // ステージにより異なる
 		}
@@ -541,19 +540,18 @@ class whole{
 	}
 	render(){
 		// 上部バー
-		fill(0)
+		fill(128)
 		rect(200, 425, 400, 50);
 		fill(255);
 		printText("STAGE " + (this.stageNumber + 1).toString(), 10, 440);
 		printText((this.key.got).toString() + "/" + (this.key.necessary).toString(), 300, 440);
 		// ゴール
 		if(this.key.complete){
-			let h = (frameCount % 200) * 0.5;
-			fill(h, 100, 100);
+			fill(pallete[7]);
 		  rect(this.goalPos.x, this.goalPos.y, 20, 20);
 	  }else{
 			// クリアしてないのでキーを描画する
-			fill(12, 100, 100);
+			fill(pallete[6]);
 			this.keys.forEach((k) => {k.update(); k.render();})
 		}
 		// プレイヤータイル
@@ -561,10 +559,10 @@ class whole{
 		// 障害物
 		this.obstacles.forEach((obs) => {obs.render();})
 		// 操作円
-	  fill(0, 0, 0, 30);
+	  fill(0, 0, 0, 75);
 	  ellipse(mouseX, mouseY, 150, 150);
 		// 文字関連
-		fill(0, 0, 100);
+		fill(255);
 		if(this.state === 0){
 			printText("START!", 40, 60);
 		}else if(this.state === 2){
@@ -593,32 +591,29 @@ class whole{
 		switch(data.kind){
 			case -1:
 			  // simple.
-				let obs = new obstacle(data.hue, data.w, data.h);
+				let obs = new obstacle(data.level, data.w, data.h);
 				obs.setPos(data.x, data.y);
 				this.obstacles.push(obs);
 				break;
 			case 0:
 			  // wanderer.
-				this.obstacles.push(new wanderer(data.hue, data.w, data.h, data.pList, data.from, data.to, data.span, data.easingId, data.moveType));
+				this.obstacles.push(new wanderer(data.level, data.w, data.h, data.pList, data.from, data.to, data.span, data.easingId, data.moveType));
 				break;
 			case 1:
 			  // circular.
-				this.obstacles.push(new circular(data.hue, data.w, data.h, data.center, data.phase, data.period, data.params, data.moveType));
+				this.obstacles.push(new circular(data.level, data.w, data.h, data.center, data.phase, data.period, data.params, data.moveType));
 				break;
 			case 2:
 			  // bullet.
-				this.obstacles.push(new bullet(data.hue, data.w, data.h, data.pivot, data.params, data.moveType));
+				this.obstacles.push(new bullet(data.level, data.w, data.h, data.pivot, data.params, data.moveType));
 				break;
 		}
 	}
 }
 
 function printText(str, x, y){
-	push();
-	fill(255);
 	textSize(40);
 	text(str, x, y);
-	pop();
 }
 // 一定時間透明になってその間は当たっても大丈夫な障害物とか
 // 伸縮するとか。伸縮しつつ移動するとか。不規則に移動を繰り返すなど。分裂したりとか。
@@ -651,3 +646,8 @@ function printText(str, x, y){
 // なんかそんなような、エレベータみたいなやつ。
 
 // constantFlowに関してはactivate変数を設けてそれがうーん難しいセンサーとの連携どうするかな
+
+// 壁：黒
+// 動く敵：赤、オレンジ、緑、青、紫
+// キー：黄色
+// ゴール：スカイブルー
