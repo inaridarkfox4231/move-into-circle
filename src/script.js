@@ -428,7 +428,6 @@ class whole{
 			this.registObstacle({kind:0, level:1, w:30, h:30, pList:points.slice(0, 4), from:2, to:3, span:60, easingId:0, moveType:4});
 			this.registObstacle({kind:0, level:1, w:40, h:40, pList:points.slice(4, 8), from:0, to:1, span:60, easingId:0, moveType:4});
 			this.registObstacle({kind:0, level:1, w:40, h:40, pList:points.slice(4, 8), from:2, to:3, span:60, easingId:0, moveType:4});
-			console.log("kkkk");
 			this.registObstacle({kind:0, level:1, w:40, h:40, pList:points.slice(8, 12), from:0, to:1, span:60, easingId:0, moveType:4});
 			this.registObstacle({kind:0, level:1, w:40, h:40, pList:points.slice(8, 12), from:2, to:3, span:60, easingId:0, moveType:4});
 			this.registObstacle({kind:0, level:1, w:30, h:30, pList:points.slice(12, 16), from:0, to:1, span:60, easingId:0, moveType:4});
